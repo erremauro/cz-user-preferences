@@ -28,6 +28,24 @@ function czup_get_meta_key_continue_reading() {
     return 'czup_continue_reading';
 }
 
+function czup_get_meta_key_show_readingtime() {
+    return 'czup_show_readingtime';
+}
+
+function czup_get_user_meta_with_default($user_id, $meta_key, $default = '') {
+    if (!$user_id) {
+        return $default;
+    }
+
+    $value = get_user_meta($user_id, $meta_key, true);
+
+    return $value === '' ? $default : $value;
+}
+
+function czup_get_show_readingtime($user_id) {
+    return czup_get_user_meta_with_default($user_id, czup_get_meta_key_show_readingtime(), '0');
+}
+
 function czup_normalize_text_size($value) {
     if ($value === '' || $value === null) {
         return '16';
@@ -107,6 +125,7 @@ function czup_enqueue_assets() {
         'theme' => $theme,
         'showQuotes' => $show_quotes,
         'continueReading' => $continue_reading,
+        'showReadingtime' => czup_get_show_readingtime($current_user_id),
         'isLoggedIn' => is_user_logged_in() ? 1 : 0,
     ));
 }
@@ -131,6 +150,7 @@ function czup_shortcode_render() {
     if ($continue_reading === '') {
         $continue_reading = '1';
     }
+    $show_readingtime = czup_get_show_readingtime($current_user_id);
 
     ob_start();
     ?>
@@ -185,6 +205,17 @@ function czup_shortcode_render() {
                 </label>
             </div>
 
+            <div class="czup-field czup-field--switch">
+                <div class="czup-field__label">
+                    <span class="czup-field__title">Tempo di Lettura</span>
+                    <small class="czup-field__description">Mostra o nascondi il tempo di lettura nelle pagine dei singoli articoli.</small>
+                </div>
+                <label class="czup-switch">
+                    <input type="checkbox" name="show_readingtime" value="1" <?php checked($show_readingtime, '1'); ?> <?php echo is_user_logged_in() ? '' : 'disabled'; ?>>
+                    <span class="czup-switch__track" aria-hidden="true"></span>
+                </label>
+            </div>
+
             <div class="czup-status" data-czup-status></div>
 
             <div class="czup-actions">
@@ -197,6 +228,15 @@ function czup_shortcode_render() {
     return ob_get_clean();
 }
 add_shortcode('cz_user_preferences', 'czup_shortcode_render');
+
+function czup_register_default_user_meta($user_id) {
+    if (!$user_id) {
+        return;
+    }
+
+    add_user_meta($user_id, czup_get_meta_key_show_readingtime(), '0', true);
+}
+add_action('user_register', 'czup_register_default_user_meta');
 
 function czup_ajax_save_preferences() {
     if (!is_user_logged_in()) {
@@ -211,10 +251,12 @@ function czup_ajax_save_preferences() {
     $theme = isset($_POST['theme']) ? sanitize_text_field(wp_unslash($_POST['theme'])) : '';
     $show_quotes = isset($_POST['show_quotes']) ? sanitize_text_field(wp_unslash($_POST['show_quotes'])) : '0';
     $continue_reading = isset($_POST['continue_reading']) ? sanitize_text_field(wp_unslash($_POST['continue_reading'])) : '0';
+    $show_readingtime = isset($_POST['show_readingtime']) ? sanitize_text_field(wp_unslash($_POST['show_readingtime'])) : '0';
 
     $allowed_themes = array('light', 'dark', 'auto', '');
     $allowed_show_quotes = array('0', '1');
     $allowed_continue_reading = array('0', '1');
+    $allowed_show_readingtime = array('0', '1');
 
     if ($text_size === false) {
         wp_send_json_error(array('message' => 'Dimensione testo non valida.'), 400);
@@ -230,11 +272,15 @@ function czup_ajax_save_preferences() {
     if (!in_array($continue_reading, $allowed_continue_reading, true)) {
         wp_send_json_error(array('message' => 'Opzione continua a leggere non valida.'), 400);
     }
+    if (!in_array($show_readingtime, $allowed_show_readingtime, true)) {
+        wp_send_json_error(array('message' => 'Opzione tempo di lettura non valida.'), 400);
+    }
 
     update_user_meta($user_id, czup_get_meta_key_text_size(), $text_size);
     update_user_meta($user_id, czup_get_meta_key_theme(), $theme);
     update_user_meta($user_id, czup_get_meta_key_show_quotes(), $show_quotes);
     update_user_meta($user_id, czup_get_meta_key_continue_reading(), $continue_reading);
+    update_user_meta($user_id, czup_get_meta_key_show_readingtime(), $show_readingtime);
 
     wp_send_json_success(array('message' => 'Preferenze salvate.'));
 }

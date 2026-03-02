@@ -203,7 +203,8 @@
         text_size: $form.find('[name="text_size"]').val() || '',
         theme: $form.find('[name="theme"]').val() || '',
         show_quotes: $form.find('[name="show_quotes"]').is(':checked') ? '1' : '0',
-        continue_reading: $form.find('[name="continue_reading"]').is(':checked') ? '1' : '0'
+        continue_reading: $form.find('[name="continue_reading"]').is(':checked') ? '1' : '0',
+        show_readingtime: $form.find('[name="show_readingtime"]').is(':checked') ? '1' : '0'
       }
     })
       .done(function (response) {
