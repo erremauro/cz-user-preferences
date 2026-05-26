@@ -32,6 +32,14 @@ function czup_get_meta_key_show_readingtime() {
     return 'czup_show_readingtime';
 }
 
+function czup_get_meta_key_highlight_style() {
+    return 'czup_highlight_style';
+}
+
+function czup_get_meta_key_highlights_enabled() {
+    return 'czup_highlights_enabled';
+}
+
 function czup_get_user_meta_with_default($user_id, $meta_key, $default = '') {
     if (!$user_id) {
         return $default;
@@ -118,6 +126,16 @@ function czup_enqueue_assets() {
         $continue_reading = '1';
     }
 
+    $highlight_style = $current_user_id ? get_user_meta($current_user_id, czup_get_meta_key_highlight_style(), true) : '';
+    if ($highlight_style === '') {
+        $highlight_style = 'underline';
+    }
+
+    $highlights_enabled = $current_user_id ? get_user_meta($current_user_id, czup_get_meta_key_highlights_enabled(), true) : '';
+    if ($highlights_enabled === '') {
+        $highlights_enabled = '1';
+    }
+
     wp_localize_script($handle, 'czupData', array(
         'ajaxUrl' => admin_url('admin-ajax.php'),
         'nonce' => wp_create_nonce('czup_save_preferences'),
@@ -126,6 +144,8 @@ function czup_enqueue_assets() {
         'showQuotes' => $show_quotes,
         'continueReading' => $continue_reading,
         'showReadingtime' => czup_get_show_readingtime($current_user_id),
+        'highlightStyle' => $highlight_style,
+        'highlightsEnabled' => $highlights_enabled,
         'isLoggedIn' => is_user_logged_in() ? 1 : 0,
     ));
 }
@@ -151,6 +171,16 @@ function czup_shortcode_render() {
         $continue_reading = '1';
     }
     $show_readingtime = czup_get_show_readingtime($current_user_id);
+
+    $highlight_style = $current_user_id ? get_user_meta($current_user_id, czup_get_meta_key_highlight_style(), true) : '';
+    if ($highlight_style === '') {
+        $highlight_style = 'underline';
+    }
+
+    $highlights_enabled = $current_user_id ? get_user_meta($current_user_id, czup_get_meta_key_highlights_enabled(), true) : '';
+    if ($highlights_enabled === '') {
+        $highlights_enabled = '1';
+    }
 
     ob_start();
     ?>
@@ -216,6 +246,28 @@ function czup_shortcode_render() {
                 </label>
             </div>
 
+            <div class="czup-field czup-field--switch">
+                <div class="czup-field__label">
+                    <span class="czup-field__title">Evidenziazioni</span>
+                    <small class="czup-field__description">Attiva o disattiva la sottolineatura delle evidenziazioni personali.</small>
+                </div>
+                <label class="czup-switch">
+                    <input type="checkbox" name="highlights_enabled" value="1" <?php checked($highlights_enabled, '1'); ?> <?php echo is_user_logged_in() ? '' : 'disabled'; ?>>
+                    <span class="czup-switch__track" aria-hidden="true"></span>
+                </label>
+            </div>
+
+            <label class="czup-field czup-field--highlight-style">
+                <div class="czup-field__label">
+                    <span class="czup-field__title">Stile Evidenziazioni</span>
+                    <small class="czup-field__description">Scegli come appaiono le tue evidenziazioni nel testo.</small>
+                </div>
+                <select name="highlight_style" <?php echo is_user_logged_in() ? '' : 'disabled'; ?>>
+                    <option value="background" <?php selected($highlight_style, 'background'); ?>>Sfondo colorato</option>
+                    <option value="underline"  <?php selected($highlight_style, 'underline'); ?>>Sottolineatura</option>
+                </select>
+            </label>
+
             <div class="czup-status" data-czup-status></div>
 
             <div class="czup-actions">
@@ -252,11 +304,15 @@ function czup_ajax_save_preferences() {
     $show_quotes = isset($_POST['show_quotes']) ? sanitize_text_field(wp_unslash($_POST['show_quotes'])) : '0';
     $continue_reading = isset($_POST['continue_reading']) ? sanitize_text_field(wp_unslash($_POST['continue_reading'])) : '0';
     $show_readingtime = isset($_POST['show_readingtime']) ? sanitize_text_field(wp_unslash($_POST['show_readingtime'])) : '0';
+    $highlight_style    = isset($_POST['highlight_style'])    ? sanitize_text_field(wp_unslash($_POST['highlight_style']))    : 'underline';
+    $highlights_enabled = isset($_POST['highlights_enabled']) ? sanitize_text_field(wp_unslash($_POST['highlights_enabled'])) : '0';
 
     $allowed_themes = array('light', 'dark', 'auto', '');
     $allowed_show_quotes = array('0', '1');
     $allowed_continue_reading = array('0', '1');
     $allowed_show_readingtime = array('0', '1');
+    $allowed_highlight_styles = array('background', 'underline');
+    $allowed_highlights_enabled = array('0', '1');
 
     if ($text_size === false) {
         wp_send_json_error(array('message' => 'Dimensione testo non valida.'), 400);
@@ -275,12 +331,20 @@ function czup_ajax_save_preferences() {
     if (!in_array($show_readingtime, $allowed_show_readingtime, true)) {
         wp_send_json_error(array('message' => 'Opzione tempo di lettura non valida.'), 400);
     }
+    if (!in_array($highlight_style, $allowed_highlight_styles, true)) {
+        $highlight_style = 'underline';
+    }
+    if (!in_array($highlights_enabled, $allowed_highlights_enabled, true)) {
+        $highlights_enabled = '1';
+    }
 
     update_user_meta($user_id, czup_get_meta_key_text_size(), $text_size);
     update_user_meta($user_id, czup_get_meta_key_theme(), $theme);
     update_user_meta($user_id, czup_get_meta_key_show_quotes(), $show_quotes);
     update_user_meta($user_id, czup_get_meta_key_continue_reading(), $continue_reading);
     update_user_meta($user_id, czup_get_meta_key_show_readingtime(), $show_readingtime);
+    update_user_meta($user_id, czup_get_meta_key_highlight_style(), $highlight_style);
+    update_user_meta($user_id, czup_get_meta_key_highlights_enabled(), $highlights_enabled);
 
     wp_send_json_success(array('message' => 'Preferenze salvate.'));
 }

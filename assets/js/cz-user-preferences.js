@@ -186,6 +186,14 @@
     syncThemeToggleButton(activeTheme, isForcedTheme);
   }
 
+  function applyHighlightStyleLive(style) {
+    document.body.classList.toggle('czh-style-underline', style === 'underline');
+  }
+
+  function applyHighlightsEnabledLive(enabled) {
+    $('[data-czup-form] .czup-field--highlight-style').toggle(!!enabled);
+  }
+
   function savePreferences($form) {
     if (!window.czupData || !czupData.isLoggedIn) {
       return;
@@ -204,7 +212,9 @@
         theme: $form.find('[name="theme"]').val() || '',
         show_quotes: $form.find('[name="show_quotes"]').is(':checked') ? '1' : '0',
         continue_reading: $form.find('[name="continue_reading"]').is(':checked') ? '1' : '0',
-        show_readingtime: $form.find('[name="show_readingtime"]').is(':checked') ? '1' : '0'
+        show_readingtime: $form.find('[name="show_readingtime"]').is(':checked') ? '1' : '0',
+        highlight_style: $form.find('[name="highlight_style"]').val() || 'underline',
+        highlights_enabled: $form.find('[name="highlights_enabled"]').is(':checked') ? '1' : '0'
       }
     })
       .done(function (response) {
@@ -241,6 +251,12 @@
     if ($field.is('select[name="theme"]')) {
       applyThemePreferenceLive($field.val() || 'auto');
     }
+    if ($field.is('select[name="highlight_style"]')) {
+      applyHighlightStyleLive($field.val() || 'underline');
+    }
+    if ($field.is('input[name="highlights_enabled"]')) {
+      applyHighlightsEnabledLive($field.is(':checked'));
+    }
 
     savePreferences($form);
   });
@@ -257,8 +273,12 @@
     $('[data-czup-form]').each(function () {
       var $form = $(this);
       var selectedTheme = $form.find('select[name="theme"]').val() || 'auto';
+      var selectedHighlightStyle = $form.find('select[name="highlight_style"]').val() || 'underline';
+      var highlightsEnabled = $form.find('input[name="highlights_enabled"]').is(':checked');
       syncTextSizeValue($form);
       applyThemePreferenceLive(selectedTheme);
+      applyHighlightStyleLive(selectedHighlightStyle);
+      applyHighlightsEnabledLive(highlightsEnabled);
     });
   });
 })(jQuery);
