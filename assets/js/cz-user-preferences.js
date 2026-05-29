@@ -194,6 +194,16 @@
     $('[data-czup-form] .czup-field--highlight-style').toggle(!!enabled);
   }
 
+  function applyStickyNavLive(enabled) {
+    document.body.classList.toggle('czup-sticky-nav', !!enabled);
+    var nav = document.querySelector('.top-nav-bar');
+    if (!nav) return;
+    if (enabled) {
+      document.documentElement.style.setProperty('--czup-nav-height', nav.offsetHeight + 'px');
+      nav.classList.remove('nav-hidden');
+    }
+  }
+
   function savePreferences($form) {
     if (!window.czupData || !czupData.isLoggedIn) {
       return;
@@ -214,7 +224,8 @@
         continue_reading: $form.find('[name="continue_reading"]').is(':checked') ? '1' : '0',
         show_readingtime: $form.find('[name="show_readingtime"]').is(':checked') ? '1' : '0',
         highlight_style: $form.find('[name="highlight_style"]').val() || 'underline',
-        highlights_enabled: $form.find('[name="highlights_enabled"]').is(':checked') ? '1' : '0'
+        highlights_enabled: $form.find('[name="highlights_enabled"]').is(':checked') ? '1' : '0',
+        sticky_nav: $form.find('[name="sticky_nav"]').is(':checked') ? '1' : '0'
       }
     })
       .done(function (response) {
@@ -257,6 +268,9 @@
     if ($field.is('input[name="highlights_enabled"]')) {
       applyHighlightsEnabledLive($field.is(':checked'));
     }
+    if ($field.is('input[name="sticky_nav"]')) {
+      applyStickyNavLive($field.is(':checked'));
+    }
 
     savePreferences($form);
   });
@@ -275,10 +289,12 @@
       var selectedTheme = $form.find('select[name="theme"]').val() || 'auto';
       var selectedHighlightStyle = $form.find('select[name="highlight_style"]').val() || 'underline';
       var highlightsEnabled = $form.find('input[name="highlights_enabled"]').is(':checked');
+      var stickyNav = $form.find('input[name="sticky_nav"]').is(':checked');
       syncTextSizeValue($form);
       applyThemePreferenceLive(selectedTheme);
       applyHighlightStyleLive(selectedHighlightStyle);
       applyHighlightsEnabledLive(highlightsEnabled);
+      applyStickyNavLive(stickyNav);
     });
   });
 })(jQuery);
